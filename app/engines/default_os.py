@@ -1,4 +1,4 @@
-from .resilience_engine import ResilienceEngine
+from app.engines.resilience_engine import ResilienceEngine
 class DefaultOS(ResilienceEngine):
     
     def run(self,state):
@@ -9,6 +9,7 @@ class DefaultOS(ResilienceEngine):
         '''
         if state.user_state=="DISTRESSED":
             state.default_use_count+=1
+            state.save()
         self.start_breathing(state)
         self.show_comforting_message(state)
         self.show_grounding_action(state)

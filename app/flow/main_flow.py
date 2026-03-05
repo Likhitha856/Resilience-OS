@@ -9,15 +9,15 @@ saving
 locking
 password handling
 content handling'''
-
-from engines.default_os import DefaultOS
-from engines.rumination import RuminationEngine
-from engines.personalization import PersonalizationEngine
-from engines.reflection import ReflectionEngine
-from engines.vent import VentEngine
-from engines.practice import PracticeEngine
-from engines.social_support import SocialSupport
-from engines.user_settings import UserSettings
+from app.engines.default_os import DefaultOS
+from app.engines.rumination import RuminationEngine
+from app.engines.file_content_manager import FileContentManager
+from app.engines.personalization import PersonalizationEngine
+from app.engines.reflection import ReflectionEngine
+from app.engines.vent import VentEngine
+from app.engines.practice import PracticeEngine
+from app.engines.social_support import SocialSupport
+from app.engines.user_settings import UserSettings
 
 class MainFlow:
     def __init__(self, state):
@@ -25,8 +25,9 @@ class MainFlow:
         self.default_os = DefaultOS()
         self.rumination = RuminationEngine()
         self.personalization = PersonalizationEngine()
-        self.reflection = ReflectionEngine()
-        self.vent = VentEngine()
+        self.file_manager=FileContentManager(state.db)
+        self.reflection = ReflectionEngine(self.file_manager)
+        self.vent = VentEngine(self.file_manager)
         self.practice = PracticeEngine()
         self.social_support = SocialSupport()
         self.user_settings=UserSettings()
@@ -35,14 +36,14 @@ class MainFlow:
         loop = True
 
         # ---- personalization prompt (shown only once) ----
-        if not self.state.prompt_shown:
-            if self.state.user_state == "OK" and self.state.default_use_count >= 1:
+        if not self.state.prompt_shown and self.state.default_use_count >= 1:
                 user_in = input(
                     "Would you like to personalize the calming flow you used earlier? yes/no\n"
                 ).lower()
                 if user_in == "yes":
                     self.personalization.personalize_os(self.state)
                 self.state.prompt_shown = True
+                self.state.save()
                 
 
         # ---- main loop ----
@@ -95,6 +96,7 @@ class MainFlow:
             # -------- OK FLOW --------
             else:
                 self.state.user_state = "OK"
+
                 choice = self.app_default_screen()
 
                 match choice:
@@ -123,6 +125,7 @@ class MainFlow:
     def handle_check_stable(self, answer):
         if answer == "yes":
             self.state.user_state = "OK"
+            self.state.save()
             return "RUN_POST_STABLE_ENGINE"
         else:
             return "NEEDS_RUMINATION"
@@ -182,7 +185,7 @@ class MainFlow:
 
         print("Saved entries:")
         for entry in entries:
-            print(f"{entry.id} - {entry.created_at}")
+            print(f"{entry['id']} - {entry['created_at']}")
 
         try:
             entry_id = int(input("Enter the ID to open (or 0 to cancel): "))
@@ -194,10 +197,13 @@ class MainFlow:
 
         entry = manager.open_entry(entry_id, self.state)
         if entry:
-            entry.display()
+            print("-----")
+            print(entry["content"])
+            print("-----")
     # -------- misc --------
 
     def exit_app(self):
+        self.state.db.close()
         self.display_ending_message()
 
     def display_ending_message(self):

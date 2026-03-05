@@ -1,9 +1,8 @@
-from .board import Board  
-from .file_content_manager import FileContentManager
+from app.engines.board import Board  
 class VentEngine:
-    def __init__(self):
+    def __init__(self,file_manager):
         self.board=Board()
-        self.file_manager=FileContentManager()
+        self.file_manager=file_manager
         
     def run_vent_board(self,state,mode="write"):
         # opens blank notepad like by defualt 
@@ -28,6 +27,7 @@ class VentEngine:
             if ask_lock == "yes":
                 pin = input("Set a PIN: ")
                 state.feature_lock.set_lock(pin)
+                state.save()
 
         self.file_manager.save_entry(
             content=content,
