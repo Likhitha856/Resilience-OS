@@ -104,6 +104,15 @@ User can:
 - Manage feature lock
 
 ---
+## Features
+
+- Modular emotional support system
+- Vent board for emotional release
+- Reflection journal
+- Password-protected private entries
+- Secure local SQLite storage
+- Soft deletion for privacy preservation
+- FastAPI backend architecture
 
 ## 🔐 Privacy & Safety
 
