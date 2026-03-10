@@ -22,7 +22,7 @@ class FeatureLock:
     # -------------------------
     # verify password
     # -------------------------
-    def verify_access(self, password: str) -> bool:
+    def verify_password(self, password: str) -> bool:
 
         if not self.lock_enabled:
             return True

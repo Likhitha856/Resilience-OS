@@ -1,7 +1,5 @@
 from pydantic import BaseModel
 from typing import List, Optional
-from pydantic import BaseModel
-
 
 
 # -------------------------
@@ -44,6 +42,10 @@ class EntryResponse(BaseModel):
 # LOCK
 # -------------------------
 
+class LockCreate(BaseModel):
+    password: str
+
+
 class LockSet(BaseModel):
     password: str
 
@@ -52,9 +54,13 @@ class LockVerify(BaseModel):
     password: str
 
 
-class LockCreate(BaseModel):
-    password: str
-
-
 class LockStatus(BaseModel):
     enabled: bool
+    
+# -------------------------
+# AUTH
+# -------------------------
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str

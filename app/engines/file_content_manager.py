@@ -8,64 +8,96 @@ class FileContentManager:
 
     def __init__(self, db):
         self.conn = db.get_connection()
-
+    def get_connection(self):
+        return self.conn
     # -------------------------
     # SAVE ENTRY
     # -------------------------
-    def save_entry(self, content, entry_type, is_locked):
-        cursor = self.conn.cursor()
+    def save_entry(self, content, entry_type, is_locked, user_id=None, anonymous_id=None):
 
-        cursor.execute("""
-            INSERT INTO entries (
-                entry_type,
-                content,
-                is_locked,
-                is_deleted,
-                created_at
-            )
-            VALUES (?, ?, ?, ?, ?)
-        """, (
-            entry_type,
-            content,
-            int(is_locked),
-            0,
-            datetime.now().isoformat()
-        ))
+        conn = self.get_connection()
+        cursor = conn.cursor()
 
-        self.conn.commit()
+        created_at = datetime.now().isoformat()
+
+        cursor.execute(
+            """
+            INSERT INTO entries (user_id, anonymous_id, entry_type, content, created_at, is_locked)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, anonymous_id, entry_type, content, created_at, int(is_locked))
+        )
+
+        conn.commit()
+
         return cursor.lastrowid
 
 
     # -------------------------
     # LIST ENTRIES
     # -------------------------
-    def display_entries(self, entry_type):
-        cursor = self.conn.cursor()
+    def display_entries(self, entry_type, user_id=None, anonymous_id=None):
 
-        cursor.execute("""
-            SELECT id, entry_type, created_at, is_locked
-            FROM entries
-            WHERE entry_type = ?
-            AND is_deleted = 0
-            ORDER BY created_at DESC
-        """, (entry_type,))
+        conn = self.get_connection()
+        cursor = conn.cursor()
 
-        return cursor.fetchall()
+        if user_id:
 
+            cursor.execute(
+                """
+                SELECT id, created_at, is_locked
+                FROM entries
+                WHERE entry_type = ?
+                AND user_id = ?
+                AND is_deleted = 0
+                ORDER BY id DESC
+                """,
+                (entry_type, user_id)
+            )
+
+        else:
+
+            cursor.execute(
+                """
+                SELECT id, created_at, is_locked
+                FROM entries
+                WHERE entry_type = ?
+                AND anonymous_id = ?
+                AND is_deleted = 0
+                ORDER BY id DESC
+                """,
+                (entry_type, anonymous_id)
+            )
+
+        rows = cursor.fetchall()
+
+        return [
+            {
+                "id": r[0],
+                "created_at": r[1],
+                "is_locked": r[2]
+            }
+            for r in rows
+        ]
 
     # -------------------------
     # OPEN ENTRY
     # -------------------------
-    def open_entry(self, entry_id, state, password=None):
+    def open_entry(self, entry_id, state, password, owner):
 
-        cursor = self.conn.cursor()
+        conn = self.get_connection()
+        cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT *
+        cursor.execute(
+            """
+            SELECT id, entry_type, content, created_at, is_locked
             FROM entries
             WHERE id = ?
+            AND (user_id = ? OR anonymous_id = ?)
             AND is_deleted = 0
-        """, (entry_id,))
+            """,
+            (entry_id, owner, owner)
+        )
 
         row = cursor.fetchone()
 
@@ -77,22 +109,32 @@ class FileContentManager:
             if not password:
                 return "PASSWORD_REQUIRED"
 
-            if not state.feature_lock.verify_access(password):
+            if not state.feature_lock.verify_password(password):
                 return "INVALID_PASSWORD"
 
-        return row
-
-
+        return {
+            "id": row["id"],
+            "entry_type": row["entry_type"],
+            "content": row["content"],
+            "created_at": row["created_at"],
+            "is_locked": row["is_locked"]
+        }
     # -------------------------
     # SOFT DELETE
     # -------------------------
-    def delete_entry(self, entry_id):
-        cursor = self.conn.cursor()
+    def delete_entry(self, entry_id, owner):
 
-        cursor.execute("""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
             UPDATE entries
             SET is_deleted = 1
             WHERE id = ?
-        """, (entry_id,))
+            AND (user_id = ? OR anonymous_id = ?)
+            """,
+            (entry_id, owner, owner)
+        )
 
-        self.conn.commit()
+        conn.commit()
