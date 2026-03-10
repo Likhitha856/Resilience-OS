@@ -9,6 +9,7 @@ venv/
 .env/
 
 # SQLite database files
+data/*.db
 *.db
 
 # OS

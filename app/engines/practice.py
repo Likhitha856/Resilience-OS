@@ -1,4 +1,4 @@
-from .resilience_engine import ResilienceEngine
+from app.engines.resilience_engine import ResilienceEngine
 class PracticeEngine(ResilienceEngine):
     # Practice mode does not change user_state or counts
     def run(self,state):

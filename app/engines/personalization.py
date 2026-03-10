@@ -56,6 +56,7 @@ class PersonalizationEngine:
         
         print("Your calming flow is ready.You can change this anytime.")
         state.personalized=True
+        state.save()
         
 
 
